@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="RhoMicro.MarkdownTemplating.Tests/RhoMicro.MarkdownTemplating.Tests.csproj" />
+  <Project Path="RhoMicro.MarkdownTemplating/RhoMicro.MarkdownTemplating.csproj" />
+</Solution>
