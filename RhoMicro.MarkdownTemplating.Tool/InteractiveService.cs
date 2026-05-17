@@ -25,7 +25,7 @@ internal sealed class InteractiveService(IHostApplicationLifetime lifetime) : Ba
                 while (!ct.IsCancellationRequested)
                 {
                     Console.Clear();
-                    Console.WriteLine("Welcome to the interactive mode.");
+                    Console.WriteLine("Welcome to interactive mode.");
                     Console.WriteLine("Press ESC to exit the application.");
                     Console.WriteLine($"Source file: {path}");
                     Console.WriteLine("Press ENTER to select a different source file.");
