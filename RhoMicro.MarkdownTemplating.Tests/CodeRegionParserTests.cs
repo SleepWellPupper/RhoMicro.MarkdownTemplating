@@ -12,13 +12,48 @@ public class CodeRegionParserTests
         # Sample Code
 
         {0}
-        [//]:(rmmt://{1}@{2})
+        [//]:(rmmdt://{1}@{2})
         [The method to include.](RhoMicro.MarkdownTemplating.Tests/UnitTest.cs)
 
         """,
         """
         ```cs
         previous code
+        ```
+        """,
+        "RhoMicro.MarkdownTemplating.Tests/UnitTest.cs",
+        "0.Foo.MethodToInclude")]
+    [InlineData(
+        """
+        # Sample Code
+
+        {0}
+        
+        [//]:(rmmdt://{1}@{2})
+        [The method to include.](RhoMicro.MarkdownTemplating.Tests/UnitTest.cs)
+
+        """,
+        """
+        ```cs
+        previous code
+        ```
+        """,
+        "RhoMicro.MarkdownTemplating.Tests/UnitTest.cs",
+        "0.Foo.MethodToInclude")]
+    [InlineData(
+        """
+        # Sample Code
+
+        {0}
+        [//]:(rmmdt://{1}@{2})
+        [The method to include.](RhoMicro.MarkdownTemplating.Tests/UnitTest.cs)
+
+        """,
+        """
+        ```cs
+        `
+        previous ``code
+        foo```
         ```
         """,
         "RhoMicro.MarkdownTemplating.Tests/UnitTest.cs",
@@ -58,14 +93,14 @@ public class CodeRegionParserTests
             # Sample 1
             ```cs
             ```
-            [//]:(rmmt://path.cs@Class.Property)
+            [//]:(rmmdt://path.cs@Class.Property)
 
             # Sample 2
             ```cs
             old
             code
             ```
-            [//]:(rmmt://file.cs)
+            [//]:(rmmdt://file.cs)
 
             - bullet point
             """;

@@ -12,7 +12,8 @@ internal sealed partial class MainService(
     MarkdownRewriterService service,
     IOptions<MainServiceOptions> options,
     IHostApplicationLifetime lifetime,
-    ILogger<MainService> logger) : BackgroundService
+    ILogger<MainService> logger)
+    : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -41,7 +42,7 @@ internal sealed partial class MainService(
     private async Task Watch(String[] paths, CancellationToken ct)
     {
         LogWatchModeEnabled(logger);
-        
+
         using var watcher = new FileSystemWatcher(
             path: options.Value.WorkingDirectory,
             filter: options.Value.SearchPattern);
@@ -52,9 +53,7 @@ internal sealed partial class MainService(
         var channel = Channel.CreateUnbounded<String>(
             new UnboundedChannelOptions
             {
-                SingleReader = true, 
-                SingleWriter = false,
-                AllowSynchronousContinuations = true
+                SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = true
             });
         watcher.Changed += (_, e) => channel.Writer.TryWrite(e.FullPath);
         await RunOnce(paths, ct);

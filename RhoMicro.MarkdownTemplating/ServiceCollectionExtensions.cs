@@ -18,9 +18,11 @@ public static class ServiceCollectionExtensions
         /// </summary>
         public IServiceCollection AddMarkdownTemplating()
         {
+            services.AddLogging();
             services.TryAddTransient<MarkdownRewriterService>();
             services.TryAddTransient<MarkdownRewriterContext>();
             services.TryAddSingleton(CSharpParseOptions.Default);
+            services.TryAddSingleton<CSharpSyntaxNodeSelector>();
             services.TryAddSingleton<IMarkdownRewriterFileProvider, MarkdownRewriterSystemFileProvider>();
             services.TryAddSingleton<ISyntaxNodeFormatter>(NormalizedSyntaxNodeFormatter.Default);
 

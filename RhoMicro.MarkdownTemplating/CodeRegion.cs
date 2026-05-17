@@ -2,7 +2,10 @@
 
 namespace RhoMicro.MarkdownTemplating;
 
+using System.Buffers;
 using System.Collections;
+using System.Diagnostics;
+using System.Security.Principal;
 using System.Text.RegularExpressions;
 
 /// <summary>
@@ -16,54 +19,125 @@ public readonly partial record struct CodeRegion
     /// <param name="markdownSource">
     /// The Markdown source text to parse.
     /// </param>
-    public ref struct Enumerator(String markdownSource) : IEnumerator<CodeRegion>
+    public struct Enumerator(String markdownSource) : IEnumerator<CodeRegion>
     {
-        private Regex.ValueMatchEnumerator _matches = GetFullPattern().EnumerateMatches(markdownSource);
+        private Int32 _index;
+        // private Regex.ValueMatchEnumerator _matches = GetFullPattern().EnumerateMatches(markdownSource);
 
         /// <inheritdoc />
-        public CodeRegion Current
-        {
-            get
-            {
-                var matchRange = _matches.Current;
-                var match = markdownSource.AsMemory(matchRange.Index, matchRange.Length);
+        public CodeRegion Current { get; private set; }
 
-                var atIndex = match.Span.LastIndexOf('@');
-                var selector = ReadOnlyMemory<Char>.Empty;
-                if (atIndex is not -1)
+        /// <inheritdoc />
+        public override String ToString() => $"Tail: {markdownSource[_index..]}";
+
+        private static readonly SearchValues<Char> _newlineSearchValues =
+            SearchValues.Create("\n\r\f\u0085\u2028\u2029");
+
+        /// <inheritdoc />
+        public Boolean MoveNext()
+        {
+            var index = _index;
+
+            const String codeStartToken = "```cs";
+            var codeStart = index;
+            var source = markdownSource.AsMemory(index);
+            var lines = source.Span.SplitAny(_newlineSearchValues);
+
+            while (true)
+            {
+                if (!lines.MoveNext())
                 {
-                    var selectorStart = atIndex + 1; // selector starts after @
-                    var selectorEnd = match.Span.LastIndexOf(')');
-                    selector = match.Slice(
-                        start: selectorStart,
-                        length: selectorEnd - selectorStart);
+                    return false;
                 }
 
-                var lastNewline = match.Span.LastIndexOfAny('\n', '\r');
-                // path starts on next line + comment_syntax.Length
-                var pathStart = lastNewline + 1 + "[//]:(rmmt://".Length;
-                var pathEnd = atIndex is -1 // no selector?
-                    ? match.Length - 1 // handle closing parenthesis
-                    : atIndex;
-                var path = match[pathStart..pathEnd].ToString();
+                var line = source.Span[lines.Current];
 
-                var codeLength = lastNewline;
-                var codeRange = new Range(
-                    start: matchRange.Index,
-                    end: matchRange.Index + codeLength);
+                if (line.SequenceEqual(codeStartToken))
+                {
+                    break;
+                }
 
-                var result = new CodeRegion(
-                    codeRange,
-                    path: path,
-                    selector: selector);
-
-                return result;
+                var lineLength = line.Length + 1;
+                index += lineLength;
+                codeStart += lineLength;
             }
+
+            const String codeEndToken = "```";
+            var codeLength = codeStartToken.Length;
+
+            while (true)
+            {
+                if (!lines.MoveNext())
+                {
+                    return false;
+                }
+
+                var line = source.Span[lines.Current];
+                var lineLength = line.Length + 1;
+                index += lineLength;
+                codeLength += lineLength;
+
+                if (line.SequenceEqual(codeEndToken))
+                {
+                    break;
+                }
+            }
+
+            var codeEnd = codeStart + codeLength;
+            var codeRange = new Range(
+                start: Index.FromStart(codeStart),
+                end: Index.FromStart(codeEnd));
+
+            while (true)
+            {
+                if (!lines.MoveNext())
+                {
+                    return false;
+                }
+
+                if (lines.Current.Start.Equals(lines.Current.End))
+                {
+                    index += 1;
+                    continue;
+                }
+
+                break;
+            }
+
+            const String pathStart = "[//]:(rmmdt://";
+
+            var lastLine = source[lines.Current];
+
+            if (!lastLine.Span.StartsWith(pathStart))
+            {
+                return false;
+            }
+
+            lastLine = lastLine[pathStart.Length..];
+
+            var pathLength = lastLine.Span.IndexOf('@');
+            var selectorLength = 0;
+            var selectorStart = pathLength + 1;
+
+            if (pathLength is -1)
+            {
+                pathLength = lastLine.Length - 1;
+                selectorStart = 0;
+            }
+            else
+            {
+                selectorLength = lastLine.Length - pathLength - 2;
+            }
+
+            var path = lastLine[..pathLength].ToString();
+            var selector = lastLine.Slice(selectorStart, selectorLength);
+
+            Current = new(codeRange, path, selector);
+
+            _index = index;
+
+            return true;
         }
-
-
-        /// <inheritdoc />
-        public Boolean MoveNext() => _matches.MoveNext();
 
         Object IEnumerator.Current => throw new NotSupportedException();
 
@@ -114,10 +188,4 @@ public readonly partial record struct CodeRegion
     /// A new enumerator for enumerating parsed code regions.
     /// </returns>
     public static Enumerator ParseAll(String markdownSource) => new(markdownSource);
-
-    [GeneratedRegex(
-        @"```cs(\r|\n|\r\n)((\1(``?)?)|[^`])*```(\r|\n|\r\n)\[\/\/\]:\(rmmt:\/\/.*(@[a-zA-Z0-9]+(.[a-zA-Z0-9]+)*)?\)",
-        RegexOptions.Multiline,
-        matchTimeoutMilliseconds: 1000)]
-    private static partial Regex GetFullPattern();
 }

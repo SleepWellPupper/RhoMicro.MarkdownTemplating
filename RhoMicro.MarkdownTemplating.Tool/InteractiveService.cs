@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Hosting;
 using RhoMicro.MarkdownTemplating;
 
@@ -33,25 +34,20 @@ internal sealed class InteractiveService(IHostApplicationLifetime lifetime) : Ba
 
                     try
                     {
-                        var selectedNodes = compilation.Select(selector, ct);
+                        var selectedNodes = context.Selector.Select(compilation, selector, ct);
 
                         if (selectedNodes is not [])
                         {
-                            for (var i = 0; i < selectedNodes.Length; i++)
+                            foreach (var t in selectedNodes)
                             {
                                 ct.ThrowIfCancellationRequested();
 
-                                if (i is not 0)
-                                {
-                                    await Console.Out.WriteLineAsync(ReadOnlyMemory<Char>.Empty, ct);
-                                }
-
-                                var selectedNode = selectedNodes[i];
+                                var selectedNode = t;
 
                                 await context.Formatter.Format(Console.Out, selectedNode, ct);
+                                await Console.Out.WriteLineAsync(ReadOnlyMemory<Char>.Empty, ct);
                             }
 
-                            Console.WriteLine();
                             Console.WriteLine($"Selected {String.Join(", ", selectedNodes.Select(n => n.Kind()))}:");
                         }
                         else
@@ -85,7 +81,7 @@ internal sealed class InteractiveService(IHostApplicationLifetime lifetime) : Ba
 
                     if (key.Key is ConsoleKey.Backspace)
                     {
-                        selector = selector[..^1];
+                        selector = selector[..Math.Max(0, selector.Length - 1)];
                         continue;
                     }
 

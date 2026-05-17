@@ -86,7 +86,7 @@ public sealed partial class MarkdownRewriterService(
     [LoggerMessage(LogLevel.Information, "Rewriting `{Path}`.")]
     static partial void LogRewritingPath(ILogger<MarkdownRewriterService> logger, String path);
 
-    [LoggerMessage(LogLevel.Debug, "Done rewriting `{Path}`.")]
+    [LoggerMessage(LogLevel.Information, "Done rewriting `{Path}`.")]
     static partial void LogDoneRewritingPath(ILogger<MarkdownRewriterService> logger, String path);
 
     [LoggerMessage(LogLevel.Error, "Error while rewriting `{Path}`.")]

@@ -66,49 +66,23 @@ public sealed partial class MarkdownRewriter
         var result = new MarkdownRewriter(markdownSource, context, logger);
 
         var regions = CodeRegion.ParseAll(markdownSource);
-        List<(Int32 index, CodeRegion region, Task<CompilationUnitSyntax> rootTask)>? lateReplacements = null;
 
-        LogParsingRegions(logger, path);
+        result.LogParsingRegions(path);
 
         foreach (var region in regions)
         {
             ct.ThrowIfCancellationRequested();
 
-            LogFoundRegion(logger, region.Path, region.Selector);
+            result.LogFoundRegion(region.Path, region.Selector);
 
-            var compilationUnitTask = context.GetCompilationUnit(
+            var replacementNodeRoot = await context.GetCompilationUnit(
                 path: region.Path,
                 baseDirectory: directoryName,
                 ct);
-            if (compilationUnitTask is { IsCompletedSuccessfully: true, Result: var replacementNodeRoot })
-            {
-                result._replacements.Add((region, replacementNodeRoot));
-            }
-            else
-            {
-                lateReplacements ??= [];
-                lateReplacements.Add((
-                    index: result._replacements.Count,
-                    region,
-                    rootTask: compilationUnitTask.AsTask()));
-                result._replacements.Add(default);
-            }
+            result._replacements.Add((region, replacementNodeRoot));
         }
 
-        LogDoneParsingRegions(logger, path);
-
-        if (lateReplacements is null)
-        {
-            return result;
-        }
-
-        foreach (var (index, region, rootTask) in lateReplacements)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var replacementNodeRoot = await rootTask.WaitAsync(ct);
-            result._replacements[index] = (region, replacementNodeRoot);
-        }
+        result.LogDoneParsingRegions(path);
 
         return result;
     }
@@ -162,7 +136,7 @@ public sealed partial class MarkdownRewriter
         {
             ct.ThrowIfCancellationRequested();
 
-            LogReplacingRegion(_logger, region.Path, region.Selector);
+            LogReplacingRegion(region.Path, region.Selector);
 
             var (codeStart, codeLength) = region.CodeRange.GetOffsetAndLength(_markdownSource.Length);
 
@@ -173,7 +147,9 @@ public sealed partial class MarkdownRewriter
             await target.WriteAsync(textBeforeRegion, ct);
             await target.WriteLineAsync("```cs".AsMemory(), ct);
 
-            var replacementNodes = replacementNodeRoot.Select(region.Selector.Span, ct);
+            var replacementNodes = _context.Selector.Select(replacementNodeRoot, region.Selector.Span, ct);
+
+            LogWritingNodesToTarget(replacementNodes.Length);
 
             for (var i = 0; i < replacementNodes.Length; i++)
             {
@@ -203,17 +179,17 @@ public sealed partial class MarkdownRewriter
     static partial void LogCreatingRewriter(ILogger<MarkdownRewriter> logger, String path);
 
     [LoggerMessage(LogLevel.Debug, "Found code region referencing path `{Path}` and selector `{Selector}`.")]
-    static partial void LogFoundRegion(ILogger<MarkdownRewriter> logger, String Path, ReadOnlyMemory<Char> Selector);
+    partial void LogFoundRegion(String Path, ReadOnlyMemory<Char> Selector);
 
     [LoggerMessage(LogLevel.Debug, "Found code region referencing path `{Path}` and selector `{Selector}`.")]
-    static partial void LogReplacingRegion(
-        ILogger<MarkdownRewriter> logger,
-        String Path,
-        ReadOnlyMemory<Char> Selector);
+    partial void LogReplacingRegion(String Path, ReadOnlyMemory<Char> Selector);
 
     [LoggerMessage(LogLevel.Debug, "Parsing code regions in `{Path}`.")]
-    static partial void LogParsingRegions(ILogger<MarkdownRewriter> logger, String Path);
+    partial void LogParsingRegions(String Path);
 
     [LoggerMessage(LogLevel.Debug, "Done parsing code regions in `{Path}`.")]
-    static partial void LogDoneParsingRegions(ILogger<MarkdownRewriter> logger, String Path);
+    partial void LogDoneParsingRegions(String Path);
+
+    [LoggerMessage(LogLevel.Debug, "Writing `{count}` nodes to target.")]
+    private partial void LogWritingNodesToTarget(Int32 count);
 }

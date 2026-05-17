@@ -4,6 +4,6 @@ namespace RhoMicro.MarkdownTemplating;
 
 internal enum HostMode
 {
-    Main,
+    Rewrite,
     Interactive
 }

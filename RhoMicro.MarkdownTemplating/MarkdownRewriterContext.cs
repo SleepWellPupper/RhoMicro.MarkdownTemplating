@@ -21,10 +21,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 /// <param name="formatter">
 /// The formatter to use when writing syntax nodes to the target stream.
 /// </param>
+/// <param name="selector">
+/// The selector to use when selecting descendants to output.
+/// </param>
 public sealed class MarkdownRewriterContext(
     CSharpParseOptions options,
     IMarkdownRewriterFileProvider fileProvider,
-    ISyntaxNodeFormatter formatter)
+    ISyntaxNodeFormatter formatter,
+    CSharpSyntaxNodeSelector selector)
 {
     /// <summary>
     /// Creates a context instance with default service implementations.
@@ -48,7 +52,9 @@ public sealed class MarkdownRewriterContext(
         CSharpParseOptions.Default,
         new MarkdownRewriterSystemFileProvider(
             loggers.CreateLogger<MarkdownRewriterSystemFileProvider>()),
-        NormalizedSyntaxNodeFormatter.Default);
+        NormalizedSyntaxNodeFormatter.Default,
+        new CSharpSyntaxNodeSelector(
+            loggers.CreateLogger<CSharpSyntaxNodeSelector>()));
 
     private readonly ConcurrentDictionary<String, CompilationUnitSyntax> _syntaxTrees
         = new();
@@ -62,6 +68,11 @@ public sealed class MarkdownRewriterContext(
     /// Gets the file provider to use when loading files into memory.
     /// </summary>
     public IMarkdownRewriterFileProvider FileProvider { get; } = fileProvider;
+
+    /// <summary>
+    /// Gets the selector to use when selecting descendants to output.
+    /// </summary>
+    public CSharpSyntaxNodeSelector Selector { get; } = selector;
 
     /// <summary>
     /// Gets the compilation unit root of the specified source file.

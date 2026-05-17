@@ -3,8 +3,8 @@
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
-    <Description></Description>
-    <PackageTags></PackageTags>
+    <Description>Provides services for rewriting markdown files to include C# source code from external files.</Description>
+    <PackageTags>markdown;readme;docs;documentation;living documentation</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,9 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging"/>
   </ItemGroup>
 
 </Project>
